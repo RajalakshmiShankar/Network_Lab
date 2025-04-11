@@ -1,104 +1,101 @@
-#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <netdb.h>
 #include <sys/socket.h>
 #include <time.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#define MAX 80
-#define PORT 8080
-#define SA struct sockaddr
-struct timeval timeout;
-void func(int sockfd, int nf, int ws)
-{
-    char buff[MAX];
-    int ack, i = 0, n, k, w1 = 0, w2 = ws - 1, j, flag = 0;
-    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout, sizeof(timeout)) < 0)
-        perror("setsockopt(SO_RCVTIMEO) failed");
 
-    for (i = 0; i < nf && i <= w2; i++)
-    {
-        bzero(buff, sizeof(buff));
-        snprintf(buff, sizeof(buff), "%d", i);
-        k = send(sockfd, buff, sizeof(buff), 0);
-        printf("Frame %d sent\n", i);
+int main() {
+    int socket_desc;
+    struct sockaddr_in servaddr;
+    struct timeval timeout;
+    char buffer[80];
+    int f, w, ack = -1, i = 0, w1 = 0, w2, j, flag = 0;
+
+    // Create socket
+    socket_desc = socket(AF_INET, SOCK_STREAM, 0);
+    if (socket_desc == -1) {
+        perror("Socket creation failed");
+        exit(EXIT_FAILURE);
     }
-    while (1)
-    {
-        if (w2 - w1 != ws - 1 && flag == 0 && i != nf)
-        {
-            bzero(buff, sizeof(buff));
-            snprintf(buff, sizeof(buff), "%d", i);
-            k = send(sockfd, buff, sizeof(buff), 0);
-            printf("Frame %d sent\n", i);
-            w2++;
-            i++;
-        }
-        flag = 0;
-        bzero(buff, sizeof(buff));
-        n = recv(sockfd, buff, MAX, 0);
-        ack = atoi(buff);
-        if (n > 0)
-        {
-            if (ack + 1 == nf)
-            {
-                printf("Acknowlegement received: %d\nExit\n", ack);
-                bzero(buff, sizeof(buff));
-                strcpy(buff, "Exit");
-                k = send(sockfd, buff, sizeof(buff), 0);
-                break;
-            }
-            if (ack == w1)
-            {
-                w1++;
-                printf("Acknowlegement received: %d\n", ack);
-            }
-        }
-        else
-        {
-            printf("Acknowledgement not received for %d\nResending frames\n", w1);
-            for (j = w1; j < nf && j < w1 + ws; j++)
-            {
-                bzero(buff, sizeof(buff));
-                snprintf(buff, sizeof(buff), "%d", j);
-                k = send(sockfd, buff, sizeof(buff), 0);
-                printf("Frame %d sent\n", j);
-            }
-            flag = 1;
-        }
-    }
-}
-void main()
-{
-    int sockfd, connfd, f, w;
-    struct sockaddr_in servaddr, cli;
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd == -1)
-    {
-        printf("Socket creation failed\n");
-        exit(0);
-    }
-    else
-        printf("Socket successfully created\n");
-    bzero(&servaddr, sizeof(servaddr));
+    printf("Socket successfully created\n");
+
+    // Configure server address
+    memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    servaddr.sin_port = htons(PORT);
+    servaddr.sin_port = htons(8080);
+
     timeout.tv_sec = 3;
     timeout.tv_usec = 0;
-    if (connect(sockfd, (SA *)&servaddr, sizeof(servaddr)) != 0)
-    {
-        printf("Connection with the server failed\n");
-        exit(0);
+
+    // Connect to server
+    if (connect(socket_desc, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) {
+        perror("Connection with the server failed");
+        exit(EXIT_FAILURE);
     }
-    else
-        printf("Connected to the server\n");
+    printf("Connected to the server\n");
+
+    // Get frame and window size
     printf("Enter the number of frames: ");
     scanf("%d", &f);
     printf("Enter the window size: ");
     scanf("%d", &w);
-    func(sockfd, f, w);
-    close(sockfd);
+
+    w2 = w - 1;
+
+    if (setsockopt(socket_desc, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout, sizeof(timeout)) < 0)
+        perror("setsockopt(SO_RCVTIMEO) failed");
+
+    // Send initial frames in the window
+    for (i = 0; i < f && i <= w2; i++) {
+        snprintf(buffer, sizeof(buffer), "%d", i);
+        send(socket_desc, buffer, sizeof(buffer), 0);
+        printf("Frame %d sent\n", i);
+    }
+
+    while (1) {
+        flag = 0;
+        memset(buffer, 0, sizeof(buffer));
+        int n = recv(socket_desc, buffer, sizeof(buffer), 0);
+
+        if (n <= 0) {
+            printf("Acknowledgment timeout! Resending frames from %d\n", w1);
+            for (j = w1; j < f && j < w1 + w; j++) {
+                snprintf(buffer, sizeof(buffer), "%d", j);
+                send(socket_desc, buffer, sizeof(buffer), 0);
+                printf("Frame %d resent\n", j);
+            }
+            flag = 1;
+            continue;
+        }
+
+        ack = atoi(buffer);
+
+        if (ack + 1 == f) {
+            printf("Final acknowledgment received: %d\nExit\n", ack);
+            strcpy(buffer, "Exit");
+            send(socket_desc, buffer, sizeof(buffer), 0);
+            break;
+        }
+
+        if (ack >= w1) {
+            w1 = ack + 1;
+            printf("Acknowledgment received: %d\n", ack);
+        }
+
+        if (flag == 0 && i < f) {
+            for (; i < f && i <= w1 + w - 1; i++) {
+                snprintf(buffer, sizeof(buffer), "%d", i);
+                send(socket_desc, buffer, sizeof(buffer), 0);
+                printf("Frame %d sent\n", i);
+            }
+        }
+    }
+
+    close(socket_desc);
+    return 0;
 }
