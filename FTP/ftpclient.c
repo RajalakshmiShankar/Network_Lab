@@ -17,11 +17,11 @@ int main(void)
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
     
     if(socket_desc < 0){
-        printf("Unable to create socket\n");
+        printf("Unable to Create Socket\n");
         return -1;
     }
     
-    printf("Socket created successfully\n");
+    printf("Socket Created Successfully\n");
     
     // Set port and IP the same as server-side:
     server_addr.sin_family = AF_INET;
@@ -30,10 +30,10 @@ int main(void)
     
     // Send connection request to server:
     if(connect(socket_desc, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0){
-        printf("Unable to connect\n");
+        printf("Unable to Connect\n");
         return -1;
     }
-    printf("Connected with server successfully\n");
+    printf("Connected with Server Successfully\n");
     
     // Get input from the user:
     printf("Enter filename ");
