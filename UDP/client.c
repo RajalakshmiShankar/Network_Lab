@@ -25,7 +25,7 @@ socket\n");
 return -1;
 }
 printf("Socket created
-successfully\n");
+successfully.....\n");
 //Set port and IP:
 server_addr.sin_family= AF_INET;
 server_addr.sin_port=
@@ -57,7 +57,7 @@ return -1;
 }
 printf("Server's Response:%s \n",
 server_message);
-//Close the socket:
+
 close(socket_desc);
 return 0;
 }

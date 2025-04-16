@@ -39,7 +39,7 @@ ver_addr)) < 0){
 printf("Couldn't bind to the port\n");
 return -1;
 }
-printf("Done with binding\n");
+printf("Done with binding.....\n");
 printf("Listening for incoming
 messages...\n\n");
 //Recieve client's message:
@@ -68,7 +68,7 @@ if(recvfrom(socket_desc,
     printf("Can't send \n");
     return -1;
     }
-    //Close the socket:
+
     close(socket_desc);
     return 0;
 }
