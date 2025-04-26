@@ -39,16 +39,16 @@ ver_addr)) < 0){
 printf("Couldn't bind to the port\n");
 return -1;
 }
-printf("Done with binding.....\n");
+printf("Done with binding........\n");
 printf("Listening for incoming
-messages...\n\n");
+messages......\n\n");
 //Recieve client's message:
 if(recvfrom(socket_desc,
     client_message,
     sizeof(client_message), 0, (struct
     sock_addr*)&client_addr,&client_s
     truct_length)<0){
-    printf("Couldn't recieve \n");
+    printf("Couldn't recieve message \n");
     return -1;
     }
     printf("Recieved message from IP:
