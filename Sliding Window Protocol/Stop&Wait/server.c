@@ -14,7 +14,7 @@ int main(void) {
 
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_desc < 0) {
-        printf("Error while creating socket\n");
+        printf("ERROR while creating socket\n");
         return -1;
     }
     printf("Socket created successfully\n");
@@ -33,7 +33,7 @@ int main(void) {
         printf("Error while listening\n");
         return -1;
     }
-    printf("\nListening for incoming connections...\n");
+    printf("\nListening for incoming connections......\n");
 
     client_size = sizeof(client_addr);
     client_sock = accept(socket_desc, (struct sockaddr*)&client_addr, &client_size);
@@ -52,7 +52,7 @@ int main(void) {
         if (frame_number % 2 != 0) {
             printf("Acknowledgment lost for frame %d\n", frame_number);
             sleep(3);
-            printf("Retransmitting acknowledgment...\n");
+            printf("Retransmitting acknowledgment......\n");
         }
 
         strcpy(buffer, "ack");
